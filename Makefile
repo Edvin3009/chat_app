@@ -1,6 +1,6 @@
 
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -ggdb3
 TARGETS = server client
 
 all: $(TARGETS)
