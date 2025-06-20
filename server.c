@@ -58,13 +58,19 @@ int main() {
                     pfds[nfds].fd = new_fd;
                     pfds[nfds].fd = POLLIN;
                 } else if (pfds[i].revents & POLLIN) {     // else if socket received data, read and broadcast data from client
-                    bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE);
+                    bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE - 1);
                     if (bytes_read < 0) {
                         perror("read failed");
                         break;
                     }
 
-                    // TODO broadcast to clients
+                    buffer[bytes_read] = "\0";
+                    // broadcast to all clients
+                    for (nfds_t j = 0; j < nfds; j++) {
+                        if (j != i) {
+                            send(pfds[j].fd, buffer, bytes_read, 0);
+                        }
+                    }
 
                 } else {        // else (in case of error/POLLERR or disconnection/POLLHUP), close socket and update polling array
                     if (close(pfds[i].fd) < 0) {
