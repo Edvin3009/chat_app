@@ -84,7 +84,7 @@ int main() {
                         }
                         buffer[bytes_read] = '\0';
                         // broadcast to all clients
-                        printf("a user sent: %s\n", buffer);
+                        printf("a user sent: %s", buffer);
                         for (nfds_t j = 1; j < nfds; j++) {
                             if (j != i) {
                                 send(pfds[j].fd, buffer, bytes_read, 0);

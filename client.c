@@ -10,6 +10,8 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5069
 #define BUFFER_SIZE 1024
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 
 int main() {
@@ -66,24 +68,28 @@ int main() {
                 break;
             }
             buffer[bytes_read] = '\0';
-            printf("You: %s\n", buffer);
-            send(client_fd, buffer, bytes_read, 0);
+            if ((send(client_fd, buffer, bytes_read, 0)) < 0){
+                perror("send failed");
+                goto close;
+            };
         }
 
+        // check socket
         if (pfds[1].revents & POLLIN) {
             bytes_read = read(pfds[1].fd, buffer, BUFFER_SIZE);
             if (bytes_read < 0) {
                 perror("read failed");
-                break;
+                goto close;    
             } else if (bytes_read > 0) {
-                buffer[bytes_read] = '\0';
-                printf("%s\n", buffer);
+                buffer[bytes_read - 1] = '\0';
+                printf(ANSI_COLOR_YELLOW "%s" ANSI_COLOR_RESET "\n", buffer);
             }
         }
     }
 
-    close(client_fd);
-    free(buffer);
-    free(pfds);
-    return 0;
+    close:
+        close(client_fd);
+        free(buffer);
+        free(pfds);
+        return 0;
 }
