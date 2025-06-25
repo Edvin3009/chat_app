@@ -5,7 +5,9 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <string.h>
 
+#define MAX_NAME_LEN 12
 #define PORT 5069
 #define MAX_CLIENTS 99
 #define BUFFER_SIZE 1024
@@ -18,7 +20,8 @@ int main() {
 
     struct pollfd *pfds;
     nfds_t nfds;
-    int nmsg;
+    int nmsg, dupl;
+    char **usernames = calloc(MAX_CLIENTS, MAX_NAME_LEN);
 
     char *buffer = malloc(BUFFER_SIZE);
     ssize_t bytes_read;
@@ -73,6 +76,23 @@ int main() {
                             nfds++;
                             printf("User connected\n");
                         }
+                    } else if (usernames[i] == 0) { // if login message
+                        bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE - 1);
+                        buffer[bytes_read] = '\0';
+                        char *newline = strchr(buffer, '\n');
+                        if (newline) *newline = '\0';
+                        dupl = 0;
+                        for (nfds_t j = 1; j < nfds; j++) {
+                            if (usernames[j] && strcmp(usernames[j], buffer) == 0) {
+                                send(pfds[i].fd, "DUP\n", 4, 0);
+                                dupl = 1;
+                                break;
+                            }
+                        }
+                        if (dupl == 0) {
+                            usernames[i] = strdup(buffer);
+                            send(pfds[i].fd, "OK\n", 3, 0);
+                        }
                     } else {     // else if socket received data, read and broadcast data from client
                         bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE - 1);
                         if (bytes_read < 0) {
@@ -84,7 +104,7 @@ int main() {
                         }
                         buffer[bytes_read] = '\0';
                         // broadcast to all clients
-                        printf("a user sent: %s", buffer);
+                        printf("%s sent: %s", usernames[i], buffer);
                         for (nfds_t j = 1; j < nfds; j++) {
                             if (j != i) {
                                 send(pfds[j].fd, buffer, bytes_read, 0);
@@ -97,9 +117,13 @@ int main() {
                         perror("close failed");
                         exit(EXIT_FAILURE);
                     }
-                    pfds[i].fd = pfds[nfds-1].fd;
+                    if (i != (nfds - 1)) {
+                        pfds[i].fd = pfds[nfds-1].fd;
+                        usernames[i] = usernames[nfds-1];
+                    }
                     pfds[nfds-1].fd = 0;
                     pfds[nfds-1].events = 0;
+                    usernames[nfds-1] = 0;
                     nfds--;
                     i--;        // to not skip any sockets after altering array
                 }

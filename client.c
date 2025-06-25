@@ -6,13 +6,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <string.h>
 
+#define MAX_NAME_LEN 12
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5069
 #define BUFFER_SIZE 1024
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+
+int login(char *buffer) {
+    printf("enter your name: ");
+    fgets(buffer, MAX_NAME_LEN + 1, stdin);
+    return 1;
+}
 
 int main() {
     int client_fd;
@@ -42,6 +50,23 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // send name
+    while (1) {
+        login(buffer);
+        send(client_fd, buffer, MAX_NAME_LEN, 0);
+        bytes_read = recv(client_fd, buffer, BUFFER_SIZE, 0);
+        if (bytes_read <= 0) {
+            perror("login failed");
+            exit(EXIT_FAILURE);
+        }
+        buffer[bytes_read] = '\0';
+
+        if (strncmp(buffer, "OK", 2) == 0) {
+            break;
+        }
+        printf("username taken, please try again\n");
+    }
+
     // create polling array and insert stdin and socket
     pfds = calloc(2, sizeof(struct pollfd));
 
@@ -68,7 +93,7 @@ int main() {
                 break;
             }
             buffer[bytes_read] = '\0';
-            if ((send(client_fd, buffer, bytes_read, 0)) < 0){
+            if ((send(client_fd, buffer, bytes_read, 0)) <= 0){
                 perror("send failed");
                 goto close;
             };
