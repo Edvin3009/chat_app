@@ -11,6 +11,7 @@
 #define PORT 5069
 #define MAX_CLIENTS 99
 #define BUFFER_SIZE 1024
+#define BUFFER_MESSAGE_SIZE 1010
 
 
 int main() {
@@ -23,8 +24,9 @@ int main() {
     int nmsg, dupl;
     char **usernames = calloc(MAX_CLIENTS, MAX_NAME_LEN);
 
-    char *buffer = malloc(BUFFER_SIZE);
+    char *buffer = malloc(BUFFER_MESSAGE_SIZE);
     ssize_t bytes_read;
+    size_t msgsize;
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket failed");
@@ -77,7 +79,7 @@ int main() {
                             printf("User connected\n");
                         }
                     } else if (usernames[i] == 0) { // if login message
-                        bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE - 1);
+                        bytes_read = read(pfds[i].fd, buffer, BUFFER_MESSAGE_SIZE - 1);
                         buffer[bytes_read] = '\0';
                         char *newline = strchr(buffer, '\n');
                         if (newline) *newline = '\0';
@@ -94,7 +96,7 @@ int main() {
                             send(pfds[i].fd, "OK\n", 3, 0);
                         }
                     } else {     // else if socket received data, read and broadcast data from client
-                        bytes_read = read(pfds[i].fd, buffer, BUFFER_SIZE - 1);
+                        bytes_read = read(pfds[i].fd, buffer, BUFFER_MESSAGE_SIZE - 1);
                         if (bytes_read < 0) {
                             perror("read failed");
                             goto close;
@@ -107,7 +109,9 @@ int main() {
                         printf("%s sent: %s", usernames[i], buffer);
                         for (nfds_t j = 1; j < nfds; j++) {
                             if (j != i) {
-                                send(pfds[j].fd, buffer, bytes_read, 0);
+                                char nbuffer[bytes_read + MAX_NAME_LEN + 2];
+                                msgsize = snprintf(nbuffer, BUFFER_SIZE, "%s: %s", usernames[i], buffer);
+                                send(pfds[j].fd, nbuffer, msgsize, 0);
                             }
                         }
                     } 

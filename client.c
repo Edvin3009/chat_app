@@ -12,6 +12,7 @@
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5069
 #define BUFFER_SIZE 1024
+#define BUFFER_MESSAGE_SIZE 1010
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
@@ -87,7 +88,7 @@ int main() {
 
         // check stdin
         if (pfds[0].revents & POLLIN) {
-            bytes_read = read(STDIN_FILENO, buffer, BUFFER_SIZE);
+            bytes_read = read(STDIN_FILENO, buffer, BUFFER_MESSAGE_SIZE);
             if (bytes_read < 0) {
                 perror("read failed");
                 break;
